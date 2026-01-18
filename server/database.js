@@ -9,24 +9,39 @@ const DB_PATH = path.join(__dirname, 'battleship.db');
 async function initDatabase() {
   const SQL = await initSqlJs();
   
-  // Try to load existing database, or create new one
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      const fileBuffer = fs.readFileSync(DB_PATH);
-      db = new SQL.Database(fileBuffer);
-    } else {
-      db = new SQL.Database();
-    }
-  } catch (e) {
-    db = new SQL.Database();
-  }
+  // Always create a fresh database for multiplayer
+  db = new SQL.Database();
 
-  // Initialize tables
+  // Initialize tables - Users for authentication
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      is_online INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Invites for game invitations
+  db.run(`
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      from_user_id TEXT NOT NULL,
+      to_user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      game_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   db.run(`
     CREATE TABLE IF NOT EXISTS games (
       id TEXT PRIMARY KEY,
       player1_id TEXT,
       player2_id TEXT,
+      player1_user_id TEXT,
+      player2_user_id TEXT,
       current_turn TEXT,
       status TEXT DEFAULT 'waiting',
       winner TEXT,
@@ -39,6 +54,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS players (
       id TEXT PRIMARY KEY,
       game_id TEXT,
+      user_id TEXT,
       name TEXT,
       grid TEXT,
       ships TEXT,
@@ -106,23 +122,100 @@ function getAll(sql, params = []) {
 module.exports = {
   initDatabase,
   
-  // Game operations
-  createGame: (gameId, player1Id) => {
+  // User operations
+  createUser: (userId, username, passwordHash) => {
     runAndSave(
-      `INSERT INTO games (id, player1_id, current_turn, status) VALUES (?, ?, ?, 'waiting')`,
-      [gameId, player1Id, player1Id]
+      `INSERT INTO users (id, username, password_hash, is_online) VALUES (?, ?, ?, 0)`,
+      [userId, username, passwordHash]
     );
   },
 
-  joinGame: (gameId, player2Id) => {
+  getUserByUsername: (username) => {
+    return getOne('SELECT * FROM users WHERE username = ?', [username]);
+  },
+
+  getUserById: (userId) => {
+    return getOne('SELECT * FROM users WHERE id = ?', [userId]);
+  },
+
+  setUserOnline: (userId, isOnline) => {
     runAndSave(
-      `UPDATE games SET player2_id = ?, status = 'setup', updated_at = datetime('now') WHERE id = ?`,
-      [player2Id, gameId]
+      `UPDATE users SET is_online = ? WHERE id = ?`,
+      [isOnline ? 1 : 0, userId]
+    );
+  },
+
+  getOnlineUsers: () => {
+    return getAll('SELECT id, username FROM users WHERE is_online = 1');
+  },
+
+  // Invite operations
+  createInvite: (inviteId, fromUserId, toUserId) => {
+    runAndSave(
+      `INSERT INTO invites (id, from_user_id, to_user_id, status) VALUES (?, ?, ?, 'pending')`,
+      [inviteId, fromUserId, toUserId]
+    );
+  },
+
+  getInvite: (inviteId) => {
+    return getOne('SELECT * FROM invites WHERE id = ?', [inviteId]);
+  },
+
+  getPendingInvitesForUser: (userId) => {
+    return getAll(
+      `SELECT i.*, u.username as from_username 
+       FROM invites i 
+       JOIN users u ON i.from_user_id = u.id 
+       WHERE i.to_user_id = ? AND i.status = 'pending'`,
+      [userId]
+    );
+  },
+
+  updateInviteStatus: (inviteId, status, gameId = null) => {
+    runAndSave(
+      `UPDATE invites SET status = ?, game_id = ? WHERE id = ?`,
+      [status, gameId, inviteId]
+    );
+  },
+
+  cancelPendingInvitesForUser: (userId) => {
+    runAndSave(
+      `UPDATE invites SET status = 'cancelled' WHERE (from_user_id = ? OR to_user_id = ?) AND status = 'pending'`,
+      [userId, userId]
+    );
+  },
+
+  // Game operations
+  createGame: (gameId, player1Id, player1UserId = null) => {
+    runAndSave(
+      `INSERT INTO games (id, player1_id, player1_user_id, current_turn, status) VALUES (?, ?, ?, ?, 'waiting')`,
+      [gameId, player1Id, player1UserId, player1Id]
+    );
+  },
+
+  createMultiplayerGame: (gameId, player1Id, player1UserId, player2Id, player2UserId) => {
+    runAndSave(
+      `INSERT INTO games (id, player1_id, player1_user_id, player2_id, player2_user_id, current_turn, status) VALUES (?, ?, ?, ?, ?, ?, 'setup')`,
+      [gameId, player1Id, player1UserId, player2Id, player2UserId, player1Id]
+    );
+  },
+
+  joinGame: (gameId, player2Id, player2UserId = null) => {
+    runAndSave(
+      `UPDATE games SET player2_id = ?, player2_user_id = ?, status = 'setup', updated_at = datetime('now') WHERE id = ?`,
+      [player2Id, player2UserId, gameId]
     );
   },
 
   getGame: (gameId) => {
     return getOne('SELECT * FROM games WHERE id = ?', [gameId]);
+  },
+
+  getActiveGameForUser: (userId) => {
+    return getOne(
+      `SELECT * FROM games WHERE (player1_user_id = ? OR player2_user_id = ?) AND status IN ('setup', 'playing')`,
+      [userId, userId]
+    );
   },
 
   updateGameStatus: (gameId, status, winner = null) => {
@@ -140,21 +233,25 @@ module.exports = {
   },
 
   // Player operations
-  createPlayer: (playerId, gameId, name) => {
+  createPlayer: (playerId, gameId, name, userId = null) => {
     const defaultMissiles = JSON.stringify({
-      standard: null, // null represents Infinity
+      standard: null,
       missileA: 3,
       missileB: 2,
       missileC: 1
     });
     runAndSave(
-      `INSERT INTO players (id, game_id, name, grid, ships, missiles, hits, misses) VALUES (?, ?, ?, '[]', '[]', ?, '[]', '[]')`,
-      [playerId, gameId, name, defaultMissiles]
+      `INSERT INTO players (id, game_id, user_id, name, grid, ships, missiles, hits, misses) VALUES (?, ?, ?, ?, '[]', '[]', ?, '[]', '[]')`,
+      [playerId, gameId, userId, name, defaultMissiles]
     );
   },
 
   getPlayer: (playerId) => {
     return getOne('SELECT * FROM players WHERE id = ?', [playerId]);
+  },
+
+  getPlayerByUserAndGame: (userId, gameId) => {
+    return getOne('SELECT * FROM players WHERE user_id = ? AND game_id = ?', [userId, gameId]);
   },
 
   getPlayersByGame: (gameId) => {

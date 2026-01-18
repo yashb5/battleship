@@ -278,3 +278,110 @@
     min-width: 200px;
   }
 }
+
+/* Waiting Screen Styles */
+.waiting-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.waiting-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.waiting-content h2 {
+  font-size: 28px;
+  color: var(--gold);
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+}
+
+.waiting-content p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.waiting-radar {
+  margin-bottom: 30px;
+}
+
+.radar-large {
+  width: 150px;
+  height: 150px;
+  border: 2px solid var(--navy-accent);
+  border-radius: 50%;
+  position: relative;
+  margin: 0 auto;
+  background: radial-gradient(circle, rgba(74, 138, 192, 0.1) 0%, transparent 70%);
+}
+
+.radar-large .radar-sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  transform-origin: left center;
+  animation: radar-sweep 2s linear infinite;
+}
+
+@keyframes radar-sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.radar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--navy-accent);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.ring-1 { width: 40%; height: 40%; }
+.ring-2 { width: 70%; height: 70%; }
+.ring-3 { width: 100%; height: 100%; }
+
+.waiting-status {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background: rgba(13, 31, 53, 0.8);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--navy-medium);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.status-item.ready {
+  color: var(--sea-green);
+}
+
+.status-item.pending {
+  color: var(--text-secondary);
+}
+
+.status-icon {
+  font-size: 18px;
+}
+
+.opponent-info {
+  margin-top: 5px;
+}
+
+.opponent-info .gold {
+  color: var(--gold);
+  font-weight: bold;
+}

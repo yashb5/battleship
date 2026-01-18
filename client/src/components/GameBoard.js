@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import Grid from './Grid';
@@ -8,11 +8,13 @@ import MissileAnimation from './MissileAnimation';
 import './GameBoard.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:3001';
+const TURN_TIME_LIMIT = 15; // seconds
 
-function GameBoard({ gameData, onGameOver, setGameData }) {
+function GameBoard({ gameData, onGameOver, setGameData, user }) {
   const [selectedMissile, setSelectedMissile] = useState('standard');
   const [missiles, setMissiles] = useState({
-    standard: null, // null represents unlimited
+    standard: null,
     missileA: 3,
     missileB: 2,
     missileC: 1
@@ -29,8 +31,144 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
   const [ships, setShips] = useState(gameData.ships || []);
   const [showNotification, setShowNotification] = useState(null);
   const [lastMoveResults, setLastMoveResults] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const wsRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // Poll for game state updates (for AI turns)
+  const isPlayerTurn = currentTurn === gameData.playerId;
+
+  // Skip turn when timer runs out
+  const skipTurn = useCallback(async () => {
+    if (!isPlayerTurn || isAnimating) return;
+    
+    try {
+      await axios.post(`${API_URL}/games/${gameData.gameId}/skip-turn`, {
+        playerId: gameData.playerId
+      });
+      
+      setShowNotification({ type: 'warning', message: 'Time ran out! Turn skipped.' });
+      setTimeout(() => setShowNotification(null), 3000);
+      setMessage(`${gameData.opponentName} is taking aim...`);
+    } catch (error) {
+      console.error('Error skipping turn:', error);
+    }
+  }, [isPlayerTurn, isAnimating, gameData.gameId, gameData.playerId, gameData.opponentName]);
+
+  // Timer effect - countdown when it's player's turn
+  useEffect(() => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (isPlayerTurn && !isAnimating) {
+      // Reset timer to full time
+      setTimeLeft(TURN_TIME_LIMIT);
+      
+      // Start countdown
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            // Time's up - skip turn
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+            skipTurn();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      // Not player's turn - reset timer display
+      setTimeLeft(TURN_TIME_LIMIT);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isPlayerTurn, isAnimating, skipTurn]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    if (user) {
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'auth', userId: user.userId }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'opponentFired') {
+            handleOpponentFire(data);
+          } else if (data.type === 'turnSkipped') {
+            // Opponent's turn was skipped, now it's our turn
+            if (data.isYourTurn) {
+              setCurrentTurn(gameData.playerId);
+              setMessage('Your turn - Select a target');
+              setShowNotification({ type: 'info', message: 'Opponent ran out of time!' });
+              setTimeout(() => setShowNotification(null), 3000);
+            }
+          }
+        } catch (e) {
+          console.error('WebSocket message error:', e);
+        }
+      };
+
+      return () => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        }
+      };
+    }
+  }, [user, gameData.playerId]);
+
+  const handleOpponentFire = useCallback((data) => {
+    const { results, sunkShips: newSunkShips, gameOver, isYourTurn } = data;
+
+    const newHits = results.filter(r => r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
+    const newMisses = results.filter(r => !r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
+
+    setEnemyHits(prev => [...prev, ...newHits]);
+    setEnemyMisses(prev => [...prev, ...newMisses]);
+
+    if (newSunkShips && newSunkShips.length > 0) {
+      setShips(prev => prev.map((ship, index) => {
+        const sunkShip = newSunkShips.find(s => s.shipIndex === index);
+        if (sunkShip) {
+          return { ...ship, sunk: true };
+        }
+        return ship;
+      }));
+
+      setShowNotification({ 
+        type: 'warning', 
+        message: `Your ${newSunkShips[0].name} was destroyed!` 
+      });
+      setTimeout(() => setShowNotification(null), 3000);
+    } else if (newHits.length > 0) {
+      setShowNotification({ type: 'warning', message: 'Your ship was hit!' });
+      setTimeout(() => setShowNotification(null), 2000);
+    }
+
+    if (gameOver) {
+      setTimeout(() => {
+        onGameOver(false);
+      }, 2000);
+    } else if (isYourTurn) {
+      setCurrentTurn(gameData.playerId);
+      setMessage('Your turn - Select a target');
+    }
+  }, [gameData.playerId, onGameOver]);
+
+  // Poll for game state updates
   useEffect(() => {
     const pollGameState = async () => {
       try {
@@ -42,41 +180,42 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
           return;
         }
 
+        const wasPlayerTurn = currentTurn === gameData.playerId;
+        const isNowPlayerTurn = game.currentTurn === gameData.playerId;
+        
         setCurrentTurn(game.currentTurn);
+        
         if (player) {
           setMissiles(player.missiles);
           setPlayerHits(player.hits);
           setPlayerMisses(player.misses);
         }
 
-        // Get enemy attacks on our ships
         const attacksResponse = await axios.get(
           `${API_URL}/games/${gameData.gameId}/attacks?playerId=${gameData.playerId}`
         );
         setEnemyHits(attacksResponse.data.hits);
         setEnemyMisses(attacksResponse.data.misses);
 
-        // Update message based on turn
-        if (game.currentTurn === gameData.playerId) {
+        if (isNowPlayerTurn) {
           setMessage('Your turn - Select a target');
         } else {
-          setMessage('Enemy is taking aim...');
+          setMessage(`${gameData.opponentName} is taking aim...`);
         }
       } catch (error) {
         console.error('Error polling game state:', error);
       }
     };
 
-    const interval = setInterval(pollGameState, 1500);
-    pollGameState(); // Initial poll
+    const interval = setInterval(pollGameState, 2000);
+    pollGameState();
 
     return () => clearInterval(interval);
-  }, [gameData.gameId, gameData.playerId, onGameOver]);
+  }, [gameData.gameId, gameData.playerId, gameData.opponentName, onGameOver, currentTurn]);
 
   const handleFire = useCallback(async (x, y) => {
     if (currentTurn !== gameData.playerId || isAnimating) return;
 
-    // Check if already attacked
     if (playerHits.some(h => h.x === x && h.y === y) || 
         playerMisses.some(m => m.x === x && m.y === y)) {
       setShowNotification({ type: 'warning', message: 'Already targeted!' });
@@ -84,7 +223,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
       return;
     }
 
-    // Check missile availability (standard missiles are always available)
     if (selectedMissile !== 'standard') {
       const missileCount = missiles[selectedMissile];
       if (missileCount !== null && missileCount !== Infinity && missileCount <= 0) {
@@ -94,18 +232,22 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
       }
     }
 
+    // Stop the timer when firing
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     setIsAnimating(true);
     setMessage('Launching missile...');
 
     try {
-      // Start missile animation
       setAnimationData({
         type: selectedMissile,
         targetX: x,
         targetY: y
       });
 
-      // Wait for missile to travel
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const response = await axios.post(`${API_URL}/games/${gameData.gameId}/fire`, {
@@ -117,7 +259,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
 
       const { results, affectedCells, sunkShips: newSunkShips, gameOver, winner } = response.data;
 
-      // Update hits and misses
       const newHits = results.filter(r => r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
       const newMisses = results.filter(r => !r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
 
@@ -125,7 +266,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
       setPlayerMisses(prev => [...prev, ...newMisses]);
       setLastMoveResults(affectedCells);
 
-      // Update missiles
       if (selectedMissile !== 'standard') {
         setMissiles(prev => ({
           ...prev,
@@ -133,7 +273,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
         }));
       }
 
-      // Handle sunk ships
       if (newSunkShips && newSunkShips.length > 0) {
         setSunkShips(prev => [...prev, ...newSunkShips]);
         setShowNotification({ 
@@ -149,13 +288,13 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
         setTimeout(() => setShowNotification(null), 2000);
       }
 
-      // Check game over
       if (gameOver) {
         setTimeout(() => {
           onGameOver(winner === gameData.playerId);
         }, 2000);
       } else {
-        setMessage('Enemy is taking aim...');
+        setCurrentTurn('opponent'); // Force turn change
+        setMessage(`${gameData.opponentName} is taking aim...`);
       }
 
     } catch (error) {
@@ -165,17 +304,21 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
       setShowNotification({ type: 'warning', message: errorMessage });
       setTimeout(() => setShowNotification(null), 3000);
     } finally {
-      // Always clean up animation state
       setTimeout(() => {
         setAnimationData(null);
         setIsAnimating(false);
       }, 800);
     }
 
-  }, [currentTurn, gameData.playerId, gameData.gameId, isAnimating, missiles, 
+  }, [currentTurn, gameData.playerId, gameData.gameId, gameData.opponentName, isAnimating, missiles, 
       playerHits, playerMisses, selectedMissile, onGameOver]);
 
-  const isPlayerTurn = currentTurn === gameData.playerId;
+  // Get timer color based on time remaining
+  const getTimerColor = () => {
+    if (timeLeft <= 5) return '#e74c3c'; // Red
+    if (timeLeft <= 10) return '#f39c12'; // Orange
+    return '#2ecc71'; // Green
+  };
 
   return (
     <div className="game-board">
@@ -194,14 +337,38 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
           <span>{message}</span>
         </div>
         <div className="enemy-info">
-          <span className="enemy-name">Admiral CPU</span>
+          <span className="enemy-name">{gameData.opponentName}</span>
           <span className="enemy-rank">ENEMY</span>
         </div>
       </div>
 
+      {/* Timer Display */}
+      {isPlayerTurn && !isAnimating && (
+        <motion.div 
+          className="turn-timer"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+        >
+          <div className="timer-circle" style={{ borderColor: getTimerColor() }}>
+            <span className="timer-value" style={{ color: getTimerColor() }}>{timeLeft}</span>
+            <span className="timer-label">SEC</span>
+          </div>
+          <div className="timer-bar-container">
+            <motion.div 
+              className="timer-bar"
+              style={{ 
+                backgroundColor: getTimerColor(),
+                width: `${(timeLeft / TURN_TIME_LIMIT) * 100}%`
+              }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </motion.div>
+      )}
+
       {/* Main game area */}
       <div className="game-main">
-        {/* Missile Panel */}
         <MissilePanel 
           missiles={missiles}
           selectedMissile={selectedMissile}
@@ -209,9 +376,7 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
           disabled={!isPlayerTurn || isAnimating}
         />
 
-        {/* Grids */}
         <div className="grids-container">
-          {/* Enemy Grid (target) */}
           <div className="grid-section enemy-section">
             <h3>ENEMY WATERS</h3>
             <Grid
@@ -225,7 +390,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
             />
           </div>
 
-          {/* Player Grid (own ships) */}
           <div className="grid-section player-section">
             <h3>YOUR FLEET</h3>
             <Grid
@@ -238,7 +402,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
           </div>
         </div>
 
-        {/* Ship Status */}
         <ShipStatus 
           ships={ships}
           enemyHits={enemyHits}
@@ -246,7 +409,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
         />
       </div>
 
-      {/* Missile Animation Overlay */}
       <AnimatePresence>
         {animationData && (
           <MissileAnimation
@@ -257,7 +419,6 @@ function GameBoard({ gameData, onGameOver, setGameData }) {
         )}
       </AnimatePresence>
 
-      {/* Notifications */}
       <AnimatePresence>
         {showNotification && (
           <motion.div

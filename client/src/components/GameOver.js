@@ -1,10 +1,22 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import ShipSVG from './svg/ShipSVG';
 import './GameOver.css';
 
 function GameOver({ gameData, onReturnToMenu }) {
   const isWinner = gameData.winner;
+
+  // Generate stable random values for victory particles to prevent re-render issues
+  const particleAnimations = useMemo(() => {
+    return [...Array(30)].map(() => ({
+      targetX: `${Math.random() * 100}vw`,
+      targetY: `${Math.random() * 100}vh`,
+      rotate: Math.random() * 360,
+      duration: 2 + Math.random() * 2,
+      delay: Math.random() * 0.5,
+      repeatDelay: Math.random() * 2
+    }));
+  }, []);
 
   return (
     <div className={`game-over ${isWinner ? 'victory' : 'defeat'}`}>
@@ -14,7 +26,7 @@ function GameOver({ gameData, onReturnToMenu }) {
           <>
             <div className="victory-rays"></div>
             <div className="victory-particles">
-              {[...Array(30)].map((_, i) => (
+              {particleAnimations.map((particle, i) => (
                 <motion.div
                   key={i}
                   className="victory-particle"
@@ -24,16 +36,16 @@ function GameOver({ gameData, onReturnToMenu }) {
                     scale: 0
                   }}
                   animate={{ 
-                    x: `${Math.random() * 100}vw`,
-                    y: `${Math.random() * 100}vh`,
+                    x: particle.targetX,
+                    y: particle.targetY,
                     scale: [0, 1, 0],
-                    rotate: Math.random() * 360
+                    rotate: particle.rotate
                   }}
                   transition={{ 
-                    duration: 2 + Math.random() * 2,
-                    delay: Math.random() * 0.5,
+                    duration: particle.duration,
+                    delay: particle.delay,
                     repeat: Infinity,
-                    repeatDelay: Math.random() * 2
+                    repeatDelay: particle.repeatDelay
                   }}
                 />
               ))}
@@ -152,7 +164,7 @@ function GameOver({ gameData, onReturnToMenu }) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          ⚓ RETURN TO PORT
+          ⚓ RETURN TO LOBBY
         </motion.button>
       </motion.div>
     </div>
