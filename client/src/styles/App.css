@@ -1,0 +1,115 @@
+.app {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Effects */
+.background-effects {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.wave {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(transparent 45%, rgba(26, 58, 92, 0.1) 50%, transparent 55%);
+  animation: waveMove 8s linear infinite;
+}
+
+.wave-1 {
+  top: -50%;
+  left: -50%;
+  animation-duration: 15s;
+}
+
+.wave-2 {
+  top: -60%;
+  left: -60%;
+  animation-duration: 20s;
+  animation-delay: -5s;
+  opacity: 0.5;
+}
+
+.wave-3 {
+  top: -40%;
+  left: -40%;
+  animation-duration: 25s;
+  animation-delay: -10s;
+  opacity: 0.3;
+}
+
+@keyframes waveMove {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(74, 138, 192, 0.6);
+  border-radius: 50%;
+  bottom: -10px;
+  animation: particleRise 10s linear infinite;
+}
+
+@keyframes particleRise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(20px);
+    opacity: 0;
+  }
+}
+
+/* Scanner line effect */
+.scanner-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--navy-accent) 50%, 
+    transparent 100%);
+  animation: scanVertical 4s linear infinite;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+@keyframes scanVertical {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}

@@ -1,0 +1,230 @@
+.game-over {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-over-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+/* Victory effects */
+.victory-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(201, 162, 39, 0.1) 10deg,
+    transparent 20deg
+  );
+  animation: rotateRays 20s linear infinite;
+}
+
+@keyframes rotateRays {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.victory-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.victory-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--gold);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* Defeat effects */
+.defeat-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.5) 100%);
+}
+
+.smoke {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(44, 62, 80, 0.3) 0%, transparent 70%);
+  animation: smokeRise 8s ease-out infinite;
+}
+
+.smoke-1 {
+  bottom: 20%;
+  left: 30%;
+  animation-delay: 0s;
+}
+
+.smoke-2 {
+  bottom: 15%;
+  left: 50%;
+  animation-delay: 2s;
+}
+
+.smoke-3 {
+  bottom: 25%;
+  left: 65%;
+  animation-delay: 4s;
+}
+
+@keyframes smokeRise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-200px) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Content */
+.game-over-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 40px;
+}
+
+.result-badge {
+  margin-bottom: 30px;
+}
+
+.badge-svg {
+  width: 150px;
+  height: 180px;
+}
+
+.defeat-badge {
+  width: 120px;
+  height: 120px;
+  filter: drop-shadow(0 0 20px rgba(192, 57, 43, 0.5));
+}
+
+.victory-badge {
+  filter: drop-shadow(0 0 30px rgba(201, 162, 39, 0.6));
+  animation: badgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+  0%, 100% { filter: drop-shadow(0 0 30px rgba(201, 162, 39, 0.6)); }
+  50% { filter: drop-shadow(0 0 50px rgba(201, 162, 39, 0.9)); }
+}
+
+.result-title {
+  font-size: 72px;
+  margin-bottom: 15px;
+  letter-spacing: 10px;
+}
+
+.victory .result-title {
+  color: var(--gold);
+  text-shadow: 
+    0 0 30px rgba(201, 162, 39, 0.8),
+    0 0 60px rgba(201, 162, 39, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.defeat .result-title {
+  color: var(--hit-red);
+  text-shadow: 
+    0 0 20px rgba(192, 57, 43, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.result-subtitle {
+  font-size: 20px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  letter-spacing: 3px;
+}
+
+.result-ships {
+  margin-bottom: 40px;
+}
+
+.victory-fleet {
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+}
+
+.defeat-fleet {
+  opacity: 0.6;
+  filter: grayscale(1) brightness(0.5);
+  transform: rotate(-5deg);
+}
+
+/* Stats */
+.game-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 40px;
+  padding: 20px 40px;
+  background: rgba(13, 31, 53, 0.8);
+  border: 1px solid var(--navy-medium);
+  border-radius: 8px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 24px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.return-btn {
+  padding: 18px 40px;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .result-title {
+    font-size: 48px;
+    letter-spacing: 5px;
+  }
+  
+  .badge-svg {
+    width: 100px;
+    height: 120px;
+  }
+  
+  .game-stats {
+    flex-direction: column;
+    gap: 20px;
+  }
+}

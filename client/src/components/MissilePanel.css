@@ -1,0 +1,211 @@
+.missile-panel {
+  width: 220px;
+  background: rgba(13, 31, 53, 0.95);
+}
+
+.missile-list {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.missile-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--navy-darker);
+  border: 1px solid var(--navy-medium);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  width: 100%;
+}
+
+.missile-item:hover:not(:disabled) {
+  border-color: var(--navy-accent);
+  background: rgba(42, 90, 138, 0.3);
+}
+
+.missile-item.selected {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.15);
+}
+
+.missile-item.depleted {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.missile-item:disabled {
+  cursor: not-allowed;
+}
+
+.selected-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(201, 162, 39, 0.3);
+}
+
+.missile-icon {
+  flex-shrink: 0;
+  width: 35px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.missile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.missile-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.missile-pattern {
+  font-size: 9px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.missile-count {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: var(--gold);
+  font-weight: 700;
+  min-width: 25px;
+  text-align: center;
+}
+
+/* Missile Details */
+.missile-details {
+  padding: 15px;
+  border-top: 1px solid var(--navy-medium);
+  background: rgba(5, 10, 18, 0.5);
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.detail-label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+.detail-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.detail-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+}
+
+/* Pattern Preview */
+.pattern-preview {
+  background: var(--navy-darker);
+  border: 1px solid var(--navy-medium);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.pattern-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.pattern-grid {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pattern-cell {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: var(--hit-red);
+  border: 1px solid var(--hit-glow);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.pattern-cell.center {
+  top: 40px;
+  left: 40px;
+  background: var(--gold);
+  border-color: var(--gold-light);
+}
+
+.pattern-cell.top { top: 15px; left: 40px; }
+.pattern-cell.bottom { top: 65px; left: 40px; }
+.pattern-cell.left { top: 40px; left: 15px; }
+.pattern-cell.right { top: 40px; left: 65px; }
+
+.pattern-cell.random {
+  background: var(--miss-blue);
+  border-color: var(--miss-blue);
+  animation: randomBlink 1s infinite;
+}
+
+.pattern-cell.r1 { top: 10px; left: 10px; animation-delay: 0s; }
+.pattern-cell.r2 { top: 10px; left: 70px; animation-delay: 0.25s; }
+.pattern-cell.r3 { top: 70px; left: 20px; animation-delay: 0.5s; }
+.pattern-cell.r4 { top: 70px; left: 60px; animation-delay: 0.75s; }
+
+@keyframes randomBlink {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.pattern-area {
+  width: 100%;
+  height: 100%;
+}
+
+.pattern-svg {
+  width: 100%;
+  height: 100%;
+}

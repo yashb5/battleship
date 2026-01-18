@@ -1,0 +1,316 @@
+.main-menu {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+}
+
+.menu-content {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+.menu-ship {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.3;
+  filter: drop-shadow(0 0 20px rgba(74, 138, 192, 0.5));
+}
+
+.menu-title {
+  margin-bottom: 40px;
+}
+
+.title-main {
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 
+    0 0 20px rgba(201, 162, 39, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 15px;
+  margin-bottom: -10px;
+}
+
+.title-sub {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-shadow: 
+    0 0 20px rgba(74, 138, 192, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 10px;
+}
+
+.title-tagline {
+  font-size: 16px;
+  color: var(--text-secondary);
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+
+/* Radar */
+.radar-container {
+  position: absolute;
+  top: 50%;
+  right: -150px;
+  transform: translateY(-50%);
+  opacity: 0.3;
+}
+
+.radar {
+  width: 200px;
+  height: 200px;
+  border: 2px solid var(--navy-accent);
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle, transparent 0%, var(--navy-darker) 100%);
+}
+
+.radar::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: var(--navy-accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.radar-sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--navy-accent), transparent);
+  transform-origin: left center;
+  animation: radar-sweep 3s linear infinite;
+}
+
+.radar-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--sea-green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.dot-1 { top: 30%; left: 40%; }
+.dot-2 { top: 60%; left: 70%; }
+.dot-3 { top: 45%; left: 55%; }
+
+/* Form */
+.menu-form {
+  background: rgba(13, 31, 53, 0.8);
+  border: 1px solid var(--navy-medium);
+  border-radius: 12px;
+  padding: 30px;
+  backdrop-filter: blur(10px);
+}
+
+.input-group {
+  margin-bottom: 25px;
+}
+
+.input-group label {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 15px 20px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  background: var(--navy-darker);
+  border: 2px solid var(--navy-medium);
+  border-radius: 6px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+  border-color: var(--navy-accent);
+  box-shadow: 0 0 15px rgba(74, 138, 192, 0.3);
+}
+
+.input-group input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.error-message {
+  color: var(--hit-red);
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menu-btn {
+  width: 100%;
+  padding: 18px 30px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Compass */
+.menu-decorations {
+  position: absolute;
+  top: 50%;
+  left: -150px;
+  transform: translateY(-50%);
+}
+
+.compass {
+  width: 100px;
+  height: 100px;
+  opacity: 0.5;
+}
+
+.compass-svg {
+  width: 100%;
+  height: 100%;
+  animation: rotate-slow 30s linear infinite;
+}
+
+@keyframes rotate-slow {
+  to { transform: rotate(360deg); }
+}
+
+/* Weapons Preview */
+.weapons-preview {
+  margin-top: 40px;
+  padding: 25px;
+  background: rgba(10, 22, 40, 0.6);
+  border: 1px solid var(--navy-medium);
+  border-radius: 8px;
+}
+
+.weapons-preview h3 {
+  font-size: 14px;
+  color: var(--gold);
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+}
+
+.weapons-list {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.weapon-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weapon-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid;
+}
+
+.missile-a {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: var(--hit-red);
+  color: var(--hit-glow);
+}
+
+.missile-b {
+  background: rgba(52, 152, 219, 0.2);
+  border-color: var(--miss-blue);
+  color: var(--miss-blue);
+}
+
+.missile-c {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.weapon-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.weapon-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.weapon-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Anchor decorations */
+.anchor-left, .anchor-right {
+  position: fixed;
+  font-size: 80px;
+  color: var(--navy-medium);
+  opacity: 0.1;
+  bottom: 20px;
+}
+
+.anchor-left { left: 20px; }
+.anchor-right { right: 20px; }
+
+@media (max-width: 768px) {
+  .title-main { font-size: 48px; letter-spacing: 8px; }
+  .title-sub { font-size: 32px; letter-spacing: 5px; }
+  .radar-container, .menu-decorations { display: none; }
+  .weapons-list { flex-direction: column; gap: 15px; }
+}

@@ -1,0 +1,131 @@
+.missile-animation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.missile-trail {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 60%;
+  background: linear-gradient(
+    to top,
+    transparent,
+    rgba(231, 76, 60, 0.3),
+    rgba(243, 156, 18, 0.5),
+    transparent
+  );
+  transform-origin: bottom center;
+  filter: blur(2px);
+  transform: translateX(-50%);
+}
+
+.flying-missile {
+  position: absolute;
+  filter: drop-shadow(0 0 20px rgba(231, 76, 60, 0.8));
+}
+
+.flying-missile.missile-standard {
+  filter: drop-shadow(0 0 15px rgba(74, 138, 192, 0.8));
+}
+
+.flying-missile.missile-missileA {
+  filter: drop-shadow(0 0 20px rgba(231, 76, 60, 0.8));
+}
+
+.flying-missile.missile-missileB {
+  filter: drop-shadow(0 0 20px rgba(52, 152, 219, 0.8));
+}
+
+.flying-missile.missile-missileC {
+  filter: drop-shadow(0 0 25px rgba(201, 162, 39, 0.8));
+}
+
+.exhaust-particles {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.exhaust-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #ff6b35, #f39c12, transparent);
+  border-radius: 50%;
+}
+
+.impact-zone {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+}
+
+.impact-svg {
+  width: 100%;
+  height: 100%;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Cross Strike indicator */
+.cross-indicator {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+}
+
+.cross-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Scatter missiles */
+.scatter-missiles {
+  position: absolute;
+}
+
+.scatter-missile {
+  position: absolute;
+}
+
+/* Devastation zone for Missile C */
+.devastation-zone {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+}
+
+.devastation-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Screen shake effect */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5px, -5px); }
+  20% { transform: translate(5px, -5px); }
+  30% { transform: translate(-5px, 5px); }
+  40% { transform: translate(5px, 5px); }
+  50% { transform: translate(-3px, -3px); }
+  60% { transform: translate(3px, -3px); }
+  70% { transform: translate(-3px, 3px); }
+  80% { transform: translate(3px, 3px); }
+  90% { transform: translate(-1px, -1px); }
+}
+
+.shake-screen {
+  animation: screenShake 0.5s ease-in-out;
+}

@@ -1,0 +1,187 @@
+.game-board {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Header */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: linear-gradient(180deg, rgba(13, 31, 53, 0.95) 0%, rgba(10, 22, 40, 0.9) 100%);
+  border: 1px solid var(--navy-medium);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.player-info, .enemy-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.player-info {
+  align-items: flex-start;
+}
+
+.enemy-info {
+  align-items: flex-end;
+}
+
+.player-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.enemy-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: var(--hit-red);
+  letter-spacing: 2px;
+}
+
+.player-rank, .enemy-rank {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 3px;
+}
+
+.turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 25px;
+  background: var(--navy-darker);
+  border: 1px solid var(--navy-light);
+  border-radius: 30px;
+}
+
+.turn-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--navy-medium);
+}
+
+.turn-light.active {
+  background: var(--sea-green);
+  box-shadow: 0 0 10px var(--sea-green), 0 0 20px var(--sea-green);
+}
+
+.turn-indicator span {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+}
+
+/* Main game area */
+.game-main {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex: 1;
+}
+
+/* Grids container */
+.grids-container {
+  display: flex;
+  gap: 40px;
+}
+
+.grid-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.grid-section h3 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  letter-spacing: 3px;
+  margin-bottom: 15px;
+  padding: 8px 20px;
+  background: var(--navy-darker);
+  border: 1px solid var(--navy-medium);
+  border-radius: 4px;
+}
+
+.enemy-section h3 {
+  color: var(--hit-red);
+  border-color: var(--hit-red);
+}
+
+/* Notifications */
+.notification {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 20px 40px;
+  font-family: 'Orbitron', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  border-radius: 8px;
+  z-index: 1000;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.notification-hit {
+  background: linear-gradient(135deg, rgba(192, 57, 43, 0.9) 0%, rgba(139, 26, 26, 0.9) 100%);
+  border: 2px solid var(--hit-glow);
+  color: white;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.5);
+  animation: shake 0.3s ease-in-out;
+}
+
+.notification-miss {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.9) 0%, rgba(33, 113, 165, 0.9) 100%);
+  border: 2px solid var(--miss-blue);
+  color: white;
+  box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+}
+
+.notification-success {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.95) 0%, rgba(160, 128, 32, 0.95) 100%);
+  border: 2px solid var(--gold-light);
+  color: var(--navy-darkest);
+  box-shadow: 0 0 40px rgba(201, 162, 39, 0.6);
+  animation: pulse 0.5s ease-in-out 3;
+}
+
+.notification-warning {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.9) 0%, rgba(243, 156, 18, 0.9) 100%);
+  border: 2px solid #f39c12;
+  color: var(--navy-darkest);
+}
+
+@media (max-width: 1400px) {
+  .grids-container {
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  .game-main {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .player-info, .enemy-info {
+    align-items: center;
+  }
+}

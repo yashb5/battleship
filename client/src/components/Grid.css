@@ -1,0 +1,291 @@
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.grid-labels-top {
+  display: flex;
+  padding-left: 35px;
+  margin-bottom: 5px;
+}
+
+.grid-labels-top span {
+  width: 40px;
+  text-align: center;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.grid-wrapper {
+  display: flex;
+  position: relative;
+}
+
+.grid-labels-left {
+  display: flex;
+  flex-direction: column;
+  padding-right: 8px;
+}
+
+.grid-labels-left span {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  width: 25px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(10, 22, 40, 0.95) 0%, rgba(5, 10, 18, 0.98) 100%);
+  border: 2px solid var(--navy-medium);
+  border-radius: 8px;
+  padding: 2px;
+  position: relative;
+  box-shadow: 
+    0 0 40px rgba(74, 138, 192, 0.15),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.enemy-grid .grid {
+  border-color: rgba(192, 57, 43, 0.5);
+  box-shadow: 
+    0 0 40px rgba(192, 57, 43, 0.15),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.player-grid .grid {
+  border-color: rgba(26, 138, 106, 0.5);
+  box-shadow: 
+    0 0 40px rgba(26, 138, 106, 0.15),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.grid-row {
+  display: flex;
+}
+
+.grid-cell {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--grid-line);
+  background: linear-gradient(135deg, 
+    rgba(26, 58, 92, 0.3) 0%, 
+    rgba(10, 22, 40, 0.5) 100%);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.enemy-cell {
+  cursor: crosshair;
+}
+
+.enemy-cell:not(.disabled):not(.hit):not(.miss):hover {
+  background: rgba(192, 57, 43, 0.3);
+  border-color: var(--hit-red);
+  box-shadow: inset 0 0 15px rgba(192, 57, 43, 0.4);
+}
+
+.player-cell {
+  cursor: default;
+}
+
+.grid-cell.disabled {
+  cursor: not-allowed;
+}
+
+.grid-cell.has-ship {
+  background: rgba(74, 138, 192, 0.2);
+}
+
+/* Hit state */
+.grid-cell.hit {
+  background: radial-gradient(circle, 
+    rgba(231, 76, 60, 0.6) 0%, 
+    rgba(139, 26, 26, 0.4) 100%);
+  border-color: var(--hit-red);
+  animation: hitGlow 2s infinite;
+}
+
+@keyframes hitGlow {
+  0%, 100% { box-shadow: inset 0 0 15px rgba(231, 76, 60, 0.5); }
+  50% { box-shadow: inset 0 0 25px rgba(231, 76, 60, 0.8); }
+}
+
+.hit-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hit-glow);
+  filter: drop-shadow(0 0 5px var(--hit-red));
+}
+
+.hit-x {
+  width: 100%;
+  height: 100%;
+}
+
+/* Miss state */
+.grid-cell.miss {
+  background: radial-gradient(circle, 
+    rgba(52, 152, 219, 0.3) 0%, 
+    rgba(26, 82, 118, 0.2) 100%);
+  border-color: rgba(52, 152, 219, 0.5);
+}
+
+.miss-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--miss-blue);
+}
+
+.miss-dot {
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+
+/* Preview for missile targeting */
+.grid-cell.preview {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: var(--gold);
+}
+
+.preview-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crosshair {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.crosshair-h, .crosshair-v {
+  position: absolute;
+  background: var(--gold);
+}
+
+.crosshair-h {
+  width: 100%;
+  height: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.crosshair-v {
+  width: 2px;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Highlighted cells from last move */
+.grid-cell.highlighted {
+  animation: highlightPulse 1s ease-out;
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 20px var(--gold); }
+  100% { box-shadow: none; }
+}
+
+/* Ship on player grid */
+.ship-cell-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: var(--navy-accent);
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+/* Ships overlay */
+.grid-ship {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 5;
+  padding: 1px;
+}
+
+.grid-ship.sunk {
+  filter: grayscale(1) brightness(0.5);
+}
+
+.ship-svg-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* Sonar overlay for enemy grid */
+.sonar-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.1;
+}
+
+.sonar-ring {
+  position: absolute;
+  border: 1px solid var(--navy-accent);
+  border-radius: 50%;
+  animation: sonar 3s ease-out infinite;
+}
+
+.ring-1 {
+  width: 100px;
+  height: 100px;
+  top: -50px;
+  left: -50px;
+  animation-delay: 0s;
+}
+
+.ring-2 {
+  width: 100px;
+  height: 100px;
+  top: -50px;
+  left: -50px;
+  animation-delay: 1s;
+}
+
+.ring-3 {
+  width: 100px;
+  height: 100px;
+  top: -50px;
+  left: -50px;
+  animation-delay: 2s;
+}
