@@ -15,9 +15,9 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
   const [selectedMissile, setSelectedMissile] = useState('standard');
   const [missiles, setMissiles] = useState({
     standard: null,
-    missileA: 3,
-    missileB: 2,
-    missileC: 1
+    missileA: 2,
+    missileB: 0,
+    missileC: 0
   });
   const [playerHits, setPlayerHits] = useState([]);
   const [playerMisses, setPlayerMisses] = useState([]);
@@ -32,6 +32,8 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
   const [showNotification, setShowNotification] = useState(null);
   const [lastMoveResults, setLastMoveResults] = useState([]);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const [treasureChests, setTreasureChests] = useState([]);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
   const wsRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -115,7 +117,22 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
               setMessage('Your turn - Select a target');
               setShowNotification({ type: 'info', message: 'Opponent ran out of time!' });
               setTimeout(() => setShowNotification(null), 3000);
+              // Update treasure chests
+              if (data.treasureChests) {
+                setTreasureChests(data.treasureChests);
+              }
             }
+          } else if (data.type === 'gameReady') {
+            // Initial treasure chests when game starts
+            if (data.treasureChests) {
+              setTreasureChests(data.treasureChests);
+            }
+          } else if (data.type === 'opponentResigned') {
+            // Opponent resigned, we win!
+            setShowNotification({ type: 'success', message: 'Opponent surrendered! You win!' });
+            setTimeout(() => {
+              onGameOver(true, 'opponent_surrendered'); // We win by opponent surrender
+            }, 2000);
           }
         } catch (e) {
           console.error('WebSocket message error:', e);
@@ -131,7 +148,7 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
   }, [user, gameData.playerId]);
 
   const handleOpponentFire = useCallback((data) => {
-    const { results, sunkShips: newSunkShips, gameOver, isYourTurn } = data;
+    const { results, sunkShips: newSunkShips, gameOver, isYourTurn, treasureChests: newTreasureChests } = data;
 
     const newHits = results.filter(r => r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
     const newMisses = results.filter(r => !r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
@@ -165,6 +182,8 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
     } else if (isYourTurn) {
       setCurrentTurn(gameData.playerId);
       setMessage('Your turn - Select a target');
+      // Update treasure chests for our turn
+      setTreasureChests(newTreasureChests || []);
     }
   }, [gameData.playerId, onGameOver]);
 
@@ -191,6 +210,9 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
           setPlayerMisses(player.misses);
         }
 
+        // Always sync treasure chests from server state
+        setTreasureChests(game.treasureChests || []);
+
         const attacksResponse = await axios.get(
           `${API_URL}/games/${gameData.gameId}/attacks?playerId=${gameData.playerId}`
         );
@@ -212,6 +234,24 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
 
     return () => clearInterval(interval);
   }, [gameData.gameId, gameData.playerId, gameData.opponentName, onGameOver, currentTurn]);
+
+  // Helper function to show attack result notification
+  const showAttackNotification = useCallback((newSunkShips, newHits, newMisses) => {
+    if (newSunkShips && newSunkShips.length > 0) {
+      setSunkShips(prev => [...prev, ...newSunkShips]);
+      setShowNotification({ 
+        type: 'success', 
+        message: `${newSunkShips[0].name} DESTROYED!` 
+      });
+      setTimeout(() => setShowNotification(null), 2000);
+    } else if (newHits.length > 0) {
+      setShowNotification({ type: 'hit', message: 'HIT!' });
+      setTimeout(() => setShowNotification(null), 1500);
+    } else if (newMisses.length > 0) {
+      setShowNotification({ type: 'miss', message: 'MISS' });
+      setTimeout(() => setShowNotification(null), 1500);
+    }
+  }, []);
 
   const handleFire = useCallback(async (x, y) => {
     if (currentTurn !== gameData.playerId || isAnimating) return;
@@ -257,7 +297,7 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
         missileType: selectedMissile
       });
 
-      const { results, affectedCells, sunkShips: newSunkShips, gameOver, winner } = response.data;
+      const { results, affectedCells, sunkShips: newSunkShips, gameOver, winner, treasureCollected, missiles: updatedMissiles } = response.data;
 
       const newHits = results.filter(r => r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
       const newMisses = results.filter(r => !r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
@@ -266,14 +306,33 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
       setPlayerMisses(prev => [...prev, ...newMisses]);
       setLastMoveResults(affectedCells);
 
-      if (selectedMissile !== 'standard') {
+      // Update missiles from server response (includes any treasure collected)
+      if (updatedMissiles) {
+        setMissiles(updatedMissiles);
+      } else if (selectedMissile !== 'standard') {
         setMissiles(prev => ({
           ...prev,
           [selectedMissile]: prev[selectedMissile] - 1
         }));
       }
 
-      if (newSunkShips && newSunkShips.length > 0) {
+      // Show treasure collected notification first (if applicable)
+      if (treasureCollected && treasureCollected.weapons && treasureCollected.weapons.length > 0) {
+        // Build message for collected treasures
+        const weaponNames = treasureCollected.weapons.map(w => w.weaponName).join(', ');
+        const count = treasureCollected.weapons.length;
+        setShowNotification({ 
+          type: 'treasure', 
+          message: count === 1 
+            ? `🎁 TREASURE! +1 ${weaponNames}!` 
+            : `🎁 TREASURES! +${count} weapons: ${weaponNames}!`
+        });
+        setTimeout(() => {
+          setShowNotification(null);
+          // Then show hit/miss/sunk notification
+          showAttackNotification(newSunkShips, newHits, newMisses);
+        }, 2000);
+      } else if (newSunkShips && newSunkShips.length > 0) {
         setSunkShips(prev => [...prev, ...newSunkShips]);
         setShowNotification({ 
           type: 'success', 
@@ -311,7 +370,7 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
     }
 
   }, [currentTurn, gameData.playerId, gameData.gameId, gameData.opponentName, isAnimating, missiles, 
-      playerHits, playerMisses, selectedMissile, onGameOver]);
+      playerHits, playerMisses, selectedMissile, onGameOver, showAttackNotification]);
 
   // Get timer color based on time remaining
   const getTimerColor = () => {
@@ -319,6 +378,22 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
     if (timeLeft <= 10) return '#f39c12'; // Orange
     return '#2ecc71'; // Green
   };
+
+  // Handle resignation
+  const handleResign = useCallback(async () => {
+    try {
+      await axios.post(`${API_URL}/games/${gameData.gameId}/resign`, {
+        playerId: gameData.playerId
+      });
+      
+      setShowResignConfirm(false);
+      onGameOver(false, 'surrendered'); // Player loses by surrender
+    } catch (error) {
+      console.error('Error resigning:', error);
+      setShowNotification({ type: 'warning', message: 'Failed to resign' });
+      setTimeout(() => setShowNotification(null), 3000);
+    }
+  }, [gameData.gameId, gameData.playerId, onGameOver]);
 
   return (
     <div className="game-board">
@@ -340,7 +415,55 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
           <span className="enemy-name">{gameData.opponentName}</span>
           <span className="enemy-rank">ENEMY</span>
         </div>
+        <motion.button
+          className="btn-resign"
+          onClick={() => setShowResignConfirm(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          🏳️ SURRENDER
+        </motion.button>
       </div>
+
+      {/* Resign Confirmation Modal */}
+      <AnimatePresence>
+        {showResignConfirm && (
+          <motion.div
+            className="resign-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="resign-modal"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+            >
+              <h2>🏳️ Surrender?</h2>
+              <p>Are you sure you want to surrender? This will count as a defeat.</p>
+              <div className="resign-modal-buttons">
+                <motion.button
+                  className="btn-confirm-resign"
+                  onClick={handleResign}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Yes, I Surrender
+                </motion.button>
+                <motion.button
+                  className="btn-cancel-resign"
+                  onClick={() => setShowResignConfirm(false)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Keep Fighting
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Timer Display */}
       {isPlayerTurn && !isAnimating && (
@@ -387,6 +510,7 @@ function GameBoard({ gameData, onGameOver, setGameData, user }) {
               disabled={!isPlayerTurn || isAnimating}
               selectedMissile={selectedMissile}
               highlightedCells={lastMoveResults}
+              treasureChests={treasureChests}
             />
           </div>
 

@@ -5,6 +5,7 @@ import './GameOver.css';
 
 function GameOver({ gameData, onReturnToMenu }) {
   const isWinner = gameData.winner;
+  const endReason = gameData.endReason; // 'surrendered', 'opponent_surrendered', or null (normal end)
 
   // Generate stable random values for victory particles to prevent re-render issues
   const particleAnimations = useMemo(() => {
@@ -109,7 +110,9 @@ function GameOver({ gameData, onReturnToMenu }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          {isWinner ? 'VICTORY!' : 'DEFEATED'}
+          {isWinner 
+            ? 'VICTORY!' 
+            : (endReason === 'surrendered' ? 'SURRENDERED' : 'DEFEATED')}
         </motion.h1>
 
         <motion.p
@@ -119,8 +122,12 @@ function GameOver({ gameData, onReturnToMenu }) {
           transition={{ delay: 0.7 }}
         >
           {isWinner 
-            ? 'You have crushed the enemy fleet!' 
-            : 'Your fleet has been destroyed...'}
+            ? (endReason === 'opponent_surrendered' 
+                ? 'The enemy has surrendered!' 
+                : 'You have crushed the enemy fleet!')
+            : (endReason === 'surrendered'
+                ? 'You have surrendered...'
+                : 'Your fleet has been destroyed...')}
         </motion.p>
 
         {/* Ship display */}

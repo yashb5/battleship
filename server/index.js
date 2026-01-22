@@ -312,12 +312,16 @@ async function startServer() {
         };
       };
       
+      // Get treasure chests for the current player (their treasure chests on enemy grid)
+      const treasureChests = playerId ? db.getPlayerTreasureChests(playerId) : [];
+      
       const response = {
         game: {
           id: game.id,
           status: game.status,
           currentTurn: game.current_turn,
-          winner: game.winner
+          winner: game.winner,
+          treasureChests: treasureChests
         },
         player: currentPlayer ? parsePlayerData(currentPlayer) : null,
         opponent: opponent ? {
@@ -369,13 +373,23 @@ async function startServer() {
       if (allReady) {
         db.updateGameStatus(gameId, 'playing');
         
+        // Generate initial treasure chest for each player (on their respective enemy grids)
+        players.forEach(p => {
+          const initialTreasureChest = gameLogic.generateTreasureChest([], []);
+          if (initialTreasureChest) {
+            db.addPlayerTreasureChest(p.id, initialTreasureChest);
+          }
+        });
+        
         // Notify both players game is starting
         players.forEach(p => {
           const player = db.getPlayer(p.id);
+          const playerTreasureChests = db.getPlayerTreasureChests(p.id);
           if (player && player.user_id) {
             sendToUser(player.user_id, {
               type: 'gameReady',
-              gameId
+              gameId,
+              treasureChests: playerTreasureChests
             });
           }
         });
@@ -442,6 +456,28 @@ async function startServer() {
       const newHits = results.filter(r => r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
       const newMisses = results.filter(r => !r.hit && !r.alreadyAttacked).map(r => ({ x: r.x, y: r.y }));
       
+      // Check if any affected cell has the current player's treasure chests
+      let treasureCollected = null;
+      const currentTreasureChests = db.getPlayerTreasureChests(playerId);
+      
+      // Check each affected cell for treasure chests
+      for (const cell of affectedCells) {
+        const collectedChest = db.removePlayerTreasureChestAt(playerId, cell.x, cell.y);
+        if (collectedChest) {
+          // Add the weapon to player's arsenal
+          missiles[collectedChest.weapon] = (missiles[collectedChest.weapon] || 0) + 1;
+          
+          // Track collected treasure (combine if multiple collected in one attack)
+          if (!treasureCollected) {
+            treasureCollected = {
+              weapons: [{ weapon: collectedChest.weapon, weaponName: gameLogic.getWeaponName(collectedChest.weapon) }]
+            };
+          } else {
+            treasureCollected.weapons.push({ weapon: collectedChest.weapon, weaponName: gameLogic.getWeaponName(collectedChest.weapon) });
+          }
+        }
+      }
+      
       db.updatePlayerHits(
         playerId,
         [...playerHits, ...newHits],
@@ -451,22 +487,45 @@ async function startServer() {
       // Update opponent's ships
       db.updatePlayerGrid(opponent.id, opponentGrid, updatedShips);
       
-      // Decrease missile count
+      // Update missile count (decrease for special missile, increase if treasure collected)
       if (missileType !== 'standard') {
         missiles[missileType]--;
-        db.updatePlayerMissiles(playerId, missiles);
       }
+      // Save updated missiles (this now includes any treasure collected)
+      db.updatePlayerMissiles(playerId, missiles);
       
       // Record move
       db.recordMove(gameId, playerId, missileType, targetX, targetY, affectedCells);
       
       // Check for game over
       const gameOver = gameLogic.checkGameOver(updatedShips);
-      if (gameOver) {
-        db.updateGameStatus(gameId, 'finished', playerId);
-      } else {
+      
+      // Handle turn switch and treasure chest generation (if game not over)
+      let opponentTreasureChests = [];
+      if (!gameOver) {
         // Switch turns
         db.updateTurn(gameId, opponent.id);
+        
+        // Get opponent's existing treasure chests
+        const existingOpponentChests = db.getPlayerTreasureChests(opponent.id);
+        
+        // Get all cells the opponent has already attacked
+        const opponentData = db.getPlayer(opponent.id);
+        const opponentHits = JSON.parse(opponentData.hits);
+        const opponentMisses = JSON.parse(opponentData.misses);
+        const opponentAttackedCells = [...opponentHits, ...opponentMisses];
+        
+        // Always try to generate a new treasure chest (30% probability)
+        // New chest should not overlap with existing chests or attacked cells
+        const newChest = gameLogic.generateTreasureChest(opponentAttackedCells, existingOpponentChests);
+        if (newChest) {
+          db.addPlayerTreasureChest(opponent.id, newChest);
+        }
+        
+        // Get updated treasure chests for opponent
+        opponentTreasureChests = db.getPlayerTreasureChests(opponent.id);
+      } else {
+        db.updateGameStatus(gameId, 'finished', playerId);
       }
       
       // Get sunk ships info
@@ -485,7 +544,8 @@ async function startServer() {
           affectedCells,
           sunkShips,
           gameOver,
-          isYourTurn: !gameOver
+          isYourTurn: !gameOver,
+          treasureChests: opponentTreasureChests // Send opponent's treasure chests
         });
       }
       
@@ -495,7 +555,9 @@ async function startServer() {
         sunkShips,
         missiles,
         gameOver,
-        winner: gameOver ? playerId : null
+        winner: gameOver ? playerId : null,
+        treasureCollected,
+        treasureChest: null // Current player doesn't see new chest (it's for opponent's turn)
       });
     } catch (error) {
       console.error('Error firing missile:', error);
@@ -548,13 +610,32 @@ async function startServer() {
       // Switch turns
       db.updateTurn(gameId, opponent.id);
       
+      // Get opponent's existing treasure chests
+      const existingOpponentChests = db.getPlayerTreasureChests(opponent.id);
+      
+      // Get all cells the opponent has already attacked
+      const opponentData = db.getPlayer(opponent.id);
+      const opponentHits = JSON.parse(opponentData.hits);
+      const opponentMisses = JSON.parse(opponentData.misses);
+      const opponentAttackedCells = [...opponentHits, ...opponentMisses];
+      
+      // Always try to generate a new treasure chest (30% probability)
+      const newChest = gameLogic.generateTreasureChest(opponentAttackedCells, existingOpponentChests);
+      if (newChest) {
+        db.addPlayerTreasureChest(opponent.id, newChest);
+      }
+      
+      // Get updated treasure chests for opponent
+      const opponentTreasureChests = db.getPlayerTreasureChests(opponent.id);
+      
       // Notify opponent via WebSocket that it's now their turn
       const opponentPlayer = db.getPlayer(opponent.id);
       if (opponentPlayer && opponentPlayer.user_id) {
         sendToUser(opponentPlayer.user_id, {
           type: 'turnSkipped',
           gameId,
-          isYourTurn: true
+          isYourTurn: true,
+          treasureChests: opponentTreasureChests
         });
       }
       
@@ -568,6 +649,49 @@ async function startServer() {
     }
   });
 
+
+  // Resign/Surrender
+  app.post('/api/games/:gameId/resign', (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const { playerId } = req.body;
+      
+      const game = db.getGame(gameId);
+      if (!game || game.status !== 'playing') {
+        return res.status(400).json({ error: 'Game is not in playing state' });
+      }
+      
+      // Get both players
+      const players = db.getPlayersByGame(gameId);
+      const resigningPlayer = players.find(p => p.id === playerId);
+      const opponent = players.find(p => p.id !== playerId);
+      
+      if (!resigningPlayer) {
+        return res.status(400).json({ error: 'Player not found in this game' });
+      }
+      
+      // Set opponent as winner
+      db.updateGameStatus(gameId, 'finished', opponent.id);
+      
+      // Notify opponent via WebSocket
+      const opponentPlayer = db.getPlayer(opponent.id);
+      if (opponentPlayer && opponentPlayer.user_id) {
+        sendToUser(opponentPlayer.user_id, {
+          type: 'opponentResigned',
+          gameId,
+          winner: opponent.id
+        });
+      }
+      
+      res.json({
+        message: 'You have resigned',
+        winner: opponent.id
+      });
+    } catch (error) {
+      console.error('Error resigning:', error);
+      res.status(500).json({ error: 'Failed to resign' });
+    }
+  });
 
   // Get online users
   app.get('/api/users/online', (req, res) => {

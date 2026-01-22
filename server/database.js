@@ -60,7 +60,8 @@ async function initDatabase() {
       ships TEXT,
       missiles TEXT,
       hits TEXT DEFAULT '[]',
-      misses TEXT DEFAULT '[]'
+      misses TEXT DEFAULT '[]',
+      treasure_chest TEXT
     )
   `);
 
@@ -232,13 +233,49 @@ module.exports = {
     );
   },
 
+  // Treasure chest operations (per player) - supports multiple chests
+  setPlayerTreasureChests: (playerId, treasureChests) => {
+    runAndSave(
+      `UPDATE players SET treasure_chest = ? WHERE id = ?`,
+      [treasureChests && treasureChests.length > 0 ? JSON.stringify(treasureChests) : null, playerId]
+    );
+  },
+
+  getPlayerTreasureChests: (playerId) => {
+    const player = getOne('SELECT treasure_chest FROM players WHERE id = ?', [playerId]);
+    if (player && player.treasure_chest) {
+      return JSON.parse(player.treasure_chest);
+    }
+    return [];
+  },
+
+  addPlayerTreasureChest: (playerId, treasureChest) => {
+    const existing = module.exports.getPlayerTreasureChests(playerId);
+    existing.push(treasureChest);
+    runAndSave(
+      `UPDATE players SET treasure_chest = ? WHERE id = ?`,
+      [JSON.stringify(existing), playerId]
+    );
+  },
+
+  removePlayerTreasureChestAt: (playerId, x, y) => {
+    const existing = module.exports.getPlayerTreasureChests(playerId);
+    const filtered = existing.filter(chest => !(chest.x === x && chest.y === y));
+    runAndSave(
+      `UPDATE players SET treasure_chest = ? WHERE id = ?`,
+      [filtered.length > 0 ? JSON.stringify(filtered) : null, playerId]
+    );
+    return existing.find(chest => chest.x === x && chest.y === y);
+  },
+
   // Player operations
   createPlayer: (playerId, gameId, name, userId = null) => {
+    // Players start with 2 Cross Strike missiles, others must be collected from treasure chests
     const defaultMissiles = JSON.stringify({
       standard: null,
-      missileA: 3,
-      missileB: 2,
-      missileC: 1
+      missileA: 2,
+      missileB: 0,
+      missileC: 0
     });
     runAndSave(
       `INSERT INTO players (id, game_id, user_id, name, grid, ships, missiles, hits, misses) VALUES (?, ?, ?, ?, '[]', '[]', ?, '[]', '[]')`,

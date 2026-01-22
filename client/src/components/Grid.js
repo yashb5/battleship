@@ -14,7 +14,8 @@ function Grid({
   onCellClick, 
   disabled = false,
   selectedMissile = 'standard',
-  highlightedCells = []
+  highlightedCells = [],
+  treasureChests = []
 }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [explosions, setExplosions] = useState([]);
@@ -83,6 +84,7 @@ function Grid({
     const isMiss = misses.some(m => m.x === x && m.y === y);
     const isHighlighted = highlightedCells.some(c => c.x === x && c.y === y);
     const isPreview = previewCells.some(c => c.x === x && c.y === y);
+    const hasTreasure = treasureChests.some(chest => chest.x === x && chest.y === y) && !isHit && !isMiss;
     
     // For player grid, check if ship is at this position
     let shipHere = null;
@@ -94,11 +96,11 @@ function Grid({
       });
     }
     
-    return { isHit, isMiss, isHighlighted, isPreview, shipHere };
+    return { isHit, isMiss, isHighlighted, isPreview, shipHere, hasTreasure };
   };
 
   const renderCell = (x, y) => {
-    const { isHit, isMiss, isHighlighted, isPreview, shipHere } = getCellStatus(x, y);
+    const { isHit, isMiss, isHighlighted, isPreview, shipHere, hasTreasure } = getCellStatus(x, y);
     
     let className = 'grid-cell';
     if (type === 'enemy') className += ' enemy-cell';
@@ -109,6 +111,7 @@ function Grid({
     if (isPreview && !isHit && !isMiss) className += ' preview';
     if (disabled) className += ' disabled';
     if (shipHere) className += ' has-ship';
+    if (hasTreasure) className += ' has-treasure';
 
     return (
       <motion.div
@@ -120,6 +123,30 @@ function Grid({
         whileHover={!disabled && type === 'enemy' ? { scale: 1.1 } : {}}
         whileTap={!disabled && type === 'enemy' ? { scale: 0.95 } : {}}
       >
+        {/* Treasure chest marker */}
+        {hasTreasure && (
+          <motion.div 
+            className="treasure-marker"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          >
+            <motion.svg 
+              viewBox="0 0 40 40" 
+              className="treasure-icon"
+              animate={{ y: [0, -3, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {/* Treasure chest icon */}
+              <rect x="8" y="16" width="24" height="16" rx="2" fill="#c9a227" stroke="#8b7500" strokeWidth="1"/>
+              <rect x="8" y="12" width="24" height="8" rx="2" fill="#daa520" stroke="#8b7500" strokeWidth="1"/>
+              <rect x="17" y="14" width="6" height="8" rx="1" fill="#8b7500"/>
+              <circle cx="20" cy="18" r="2" fill="#ffd700"/>
+              <line x1="8" y1="20" x2="32" y2="20" stroke="#8b7500" strokeWidth="1"/>
+            </motion.svg>
+          </motion.div>
+        )}
+
         {/* Hit marker */}
         {isHit && (
           <motion.div 
