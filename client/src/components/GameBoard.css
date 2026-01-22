@@ -185,3 +185,78 @@
     align-items: center;
   }
 }
+
+/* Turn Timer Styles */
+.turn-timer {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
+  background: rgba(13, 31, 53, 0.95);
+  padding: 15px 25px;
+  border-radius: 12px;
+  border: 2px solid var(--navy-medium);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.timer-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  transition: border-color 0.3s ease;
+}
+
+.timer-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.timer-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+.timer-bar-container {
+  width: 150px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s linear, background-color 0.3s ease;
+}
+
+/* Timer warning animation when low */
+@keyframes timer-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.turn-timer:has(.timer-value[style*="rgb(231, 76, 60)"]) {
+  animation: timer-pulse 0.5s infinite;
+}
+
+/* Notification info style */
+.notification-info {
+  background: linear-gradient(135deg, var(--navy-accent), #2c5aa0);
+  color: white;
+}

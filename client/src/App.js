@@ -1,17 +1,33 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MainMenu from './components/MainMenu';
+import Auth from './components/Auth';
+import Lobby from './components/Lobby';
 import GameSetup from './components/GameSetup';
 import GameBoard from './components/GameBoard';
 import GameOver from './components/GameOver';
 import './styles/App.css';
 
 function App() {
-  const [gameState, setGameState] = useState('menu'); // menu, setup, playing, gameover
+  const [user, setUser] = useState(null); // { userId, username }
+  const [gameState, setGameState] = useState('auth'); // auth, lobby, setup, playing, gameover
   const [gameData, setGameData] = useState(null);
 
-  const handleStartGame = useCallback((data) => {
-    setGameData(data);
+  const handleLogin = useCallback((userData) => {
+    setUser(userData);
+    setGameState('lobby');
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    setGameState('auth');
+    setGameData(null);
+  }, []);
+
+  const handleGameStart = useCallback((data) => {
+    setGameData({
+      ...data,
+      isSinglePlayer: false
+    });
     setGameState('setup');
   }, []);
 
@@ -25,8 +41,8 @@ function App() {
     setGameState('gameover');
   }, []);
 
-  const handleReturnToMenu = useCallback(() => {
-    setGameState('menu');
+  const handleReturnToLobby = useCallback(() => {
+    setGameState('lobby');
     setGameData(null);
   }, []);
 
@@ -49,15 +65,31 @@ function App() {
       </div>
 
       <AnimatePresence mode="wait">
-        {gameState === 'menu' && (
+        {gameState === 'auth' && (
           <motion.div
-            key="menu"
+            key="auth"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <MainMenu onStartGame={handleStartGame} />
+            <Auth onLogin={handleLogin} />
+          </motion.div>
+        )}
+
+        {gameState === 'lobby' && (
+          <motion.div
+            key="lobby"
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Lobby 
+              user={user} 
+              onGameStart={handleGameStart}
+              onLogout={handleLogout}
+            />
           </motion.div>
         )}
 
@@ -69,7 +101,11 @@ function App() {
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.5 }}
           >
-            <GameSetup gameData={gameData} onReady={handleGameReady} />
+            <GameSetup 
+              gameData={gameData} 
+              onReady={handleGameReady}
+              user={user}
+            />
           </motion.div>
         )}
 
@@ -85,6 +121,7 @@ function App() {
               gameData={gameData} 
               onGameOver={handleGameOver}
               setGameData={setGameData}
+              user={user}
             />
           </motion.div>
         )}
@@ -99,7 +136,7 @@ function App() {
           >
             <GameOver 
               gameData={gameData} 
-              onReturnToMenu={handleReturnToMenu}
+              onReturnToMenu={handleReturnToLobby}
             />
           </motion.div>
         )}

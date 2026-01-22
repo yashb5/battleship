@@ -193,18 +193,15 @@ function Grid({
             left: `${startCell.x * 40}px`,
             top: `${startCell.y * 40}px`,
             width: isHorizontal ? `${ship.size * 40}px` : '40px',
-            height: isHorizontal ? '40px' : `${ship.size * 40}px`
+            height: isHorizontal ? '40px' : `${ship.size * 40}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: isSunk ? 0.4 : 0.9 }}
         >
-          <div 
-            className="ship-svg-wrapper"
-            style={{ 
-              transform: isHorizontal ? 'none' : 'rotate(90deg)',
-              transformOrigin: '20px 20px'
-            }}
-          >
+          <div style={{ transform: isHorizontal ? 'none' : 'rotate(90deg)' }}>
             <ShipSVG 
               type={ship.name} 
               size={ship.size * 38} 
