@@ -36,8 +36,8 @@ function App() {
     setGameState('playing');
   }, []);
 
-  const handleGameOver = useCallback((winner) => {
-    setGameData(prev => ({ ...prev, winner }));
+  const handleGameOver = useCallback((winner, endReason = null) => {
+    setGameData(prev => ({ ...prev, winner, endReason }));
     setGameState('gameover');
   }, []);
 

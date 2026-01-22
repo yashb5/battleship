@@ -179,6 +179,77 @@ const checkGameOver = (ships) => {
   return ships.every(ship => ship.sunk);
 };
 
+// Treasure chest probability constants
+const TREASURE_SPAWN_PROBABILITY = 0.3;
+const MAX_TREASURE_CHESTS = 3; // Maximum number of chests per player
+const TREASURE_WEAPON_PROBABILITIES = {
+  missileA: 0.5,  // Cross Strike
+  missileB: 0.3,  // Scatter Shot
+  missileC: 0.2   // Devastator
+};
+
+// Generate a random treasure chest with a weapon
+// attackedCells: cells already attacked by the player
+// existingChests: existing treasure chests to avoid overlap
+const generateTreasureChest = (attackedCells = [], existingChests = []) => {
+  // Check if max chests limit reached
+  if (existingChests.length >= MAX_TREASURE_CHESTS) {
+    return null;
+  }
+
+  // 0.3 probability to spawn a treasure chest
+  if (Math.random() > TREASURE_SPAWN_PROBABILITY) {
+    return null;
+  }
+
+  // Find all available cells (not attacked and no existing chest)
+  const availableCells = [];
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      const isAttacked = attackedCells.some(c => c.x === x && c.y === y);
+      const hasChest = existingChests.some(c => c.x === x && c.y === y);
+      if (!isAttacked && !hasChest) {
+        availableCells.push({ x, y });
+      }
+    }
+  }
+
+  if (availableCells.length === 0) {
+    return null;
+  }
+
+  // Pick a random available cell
+  const randomIndex = Math.floor(Math.random() * availableCells.length);
+  const cell = availableCells[randomIndex];
+
+  // Determine the weapon using probability distribution
+  const rand = Math.random();
+  let weapon;
+  if (rand < TREASURE_WEAPON_PROBABILITIES.missileA) {
+    weapon = 'missileA'; // Cross Strike - 50%
+  } else if (rand < TREASURE_WEAPON_PROBABILITIES.missileA + TREASURE_WEAPON_PROBABILITIES.missileB) {
+    weapon = 'missileB'; // Scatter Shot - 30%
+  } else {
+    weapon = 'missileC'; // Devastator - 20%
+  }
+
+  return {
+    x: cell.x,
+    y: cell.y,
+    weapon: weapon
+  };
+};
+
+// Get weapon display name
+const getWeaponName = (weaponId) => {
+  const names = {
+    missileA: 'Cross Strike',
+    missileB: 'Scatter Shot',
+    missileC: 'Devastator'
+  };
+  return names[weaponId] || weaponId;
+};
+
 module.exports = {
   GRID_SIZE,
   SHIPS,
@@ -188,5 +259,7 @@ module.exports = {
   autoPlaceShips,
   getMissileAffectedCells,
   processAttack,
-  checkGameOver
+  checkGameOver,
+  generateTreasureChest,
+  getWeaponName
 };

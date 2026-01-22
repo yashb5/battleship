@@ -348,6 +348,16 @@ function Lobby({ user, onGameStart, onLogout }) {
               <h3>🚀 MISSILE ARSENAL</h3>
             </div>
             <div className="arsenal-content">
+              {/* Treasure Chest Info */}
+              <div className="treasure-info">
+                <div className="treasure-icon">🎁</div>
+                <div className="treasure-details">
+                  <h4>Treasure Chests</h4>
+                  <p>Treasure chests may appear on the grid at the start of each turn. 
+                     Multiple chests can accumulate — attack them to collect special weapons!</p>
+                </div>
+              </div>
+
               <div className="missile-info">
                 <div className="missile-card">
                   <div className="missile-icon standard">
@@ -369,7 +379,7 @@ function Lobby({ user, onGameStart, onLogout }) {
                   </div>
                   <div className="missile-details">
                     <h4>Cross Strike</h4>
-                    <p className="missile-count">×3 Available</p>
+                    <p className="missile-count">×2 Starting + 🎁</p>
                     <p className="missile-desc">Hits target + 4 adjacent cells in cross pattern</p>
                     <div className="impact-pattern cross-pattern">
                       <PatternGrid pattern={crossPattern} size="small" />
@@ -383,7 +393,7 @@ function Lobby({ user, onGameStart, onLogout }) {
                   </div>
                   <div className="missile-details">
                     <h4>Scatter Shot</h4>
-                    <p className="missile-count">×2 Available</p>
+                    <p className="missile-count">🎁 Collect from chests</p>
                     <p className="missile-desc">Hits target + 4 random cells across the grid</p>
                     <div className="impact-pattern scatter-pattern">
                       <PatternGrid pattern={scatterPattern} size="small" />
@@ -397,7 +407,7 @@ function Lobby({ user, onGameStart, onLogout }) {
                   </div>
                   <div className="missile-details">
                     <h4>Devastator</h4>
-                    <p className="missile-count">×1 Available</p>
+                    <p className="missile-count">🎁 Collect from chests</p>
                     <p className="missile-desc">Massive blast - all cells within range 3</p>
                     <div className="impact-pattern devastator-pattern">
                       <PatternGrid pattern={devastatorPattern} size="large" />
